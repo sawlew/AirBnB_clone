@@ -1,454 +1,831 @@
 #!/usr/bin/python3
-"""Unit test for the file storage class
+""" Unittests for AirBnB Console
 """
-import unittest
-import json
-import pep8
-from io import StringIO
-from unittest.mock import patch
+
+from datetime import datetime
+import io
 from console import HBNBCommand
+from models import storage
 from models.engine.file_storage import FileStorage
-import os
+from models.base_model import BaseModel
+from models.user import User
+from models.city import City
+from models.amenity import Amenity
+from models.place import Place
+from models.review import Review
+from models.state import State
+from os import path, remove
+import unittest
+from unittest.mock import patch
 
 
-class TestConsoleClass(unittest.TestCase):
-    """TestConsoleClass resume
-    Args:
-        unittest (): Propertys for unit testing
-    """
+class Test_non_existing_command(unittest.TestCase):
 
-    maxDiff = None
+    """ Tests a command that does not exist """
+
+    def test_unknown(self):
+        """ Command that does not exist """
+        msg = "*** Unknown syntax: asd\n"
+        with patch('sys.stdout', new=io.StringIO()) as f:
+            HBNBCommand().onecmd("asd")
+            st = f.getvalue()
+            self.assertEqual(msg, st)
+
+
+class Test_help(unittest.TestCase):
+
+    """ Tests the help commands """
 
     def setUp(self):
-        """ condition to test file saving """
-        with open("test.json", 'w'):
-            FileStorage._FileStorage__file_path = "test.json"
-            FileStorage._FileStorage__objects = {}
+        """ Set up for all methods """
+        try:
+            remove("file.json")
+        except:
+            pass
+        FileStorage._FileStorage__objects = {}
 
     def tearDown(self):
-        """ destroys created file """
-        FileStorage._FileStorage__file_path = "file.json"
+        """ Tear down for all methods """
         try:
-            os.remove("test.json")
-        except FileNotFoundError:
+            remove("file.json")
+        except:
             pass
 
-    def test_module_doc(self):
-        """ check for module documentation """
-        self.assertTrue(len(HBNBCommand.__doc__) > 0)
+    def test_help_help(self):
+        """  Test for help of quit command """
+        msg = "List available commands with \"help\" or " \
+              "detailed help with \"help cmd\".\n"
+        with patch('sys.stdout', new=io.StringIO()) as f:
+            HBNBCommand().onecmd("help help")
+            st = f.getvalue()
+            self.assertEqual(msg, st)
 
-    def test_class_doc(self):
-        """ check for documentation """
-        self.assertTrue(len(HBNBCommand.__doc__) > 0)
+    def test_help_quit(self):
+        """  Test for help of quit command """
+        msg = "Quit command to exit the program\n"
+        with patch('sys.stdout', new=io.StringIO()) as f:
+            HBNBCommand().onecmd("help quit")
+            st = f.getvalue()
+            self.assertEqual(msg, st)
 
-    def test_method_docs(self):
-        """ check for method documentation """
-        for func in dir(HBNBCommand):
-            self.assertTrue(len(func.__doc__) > 0)
+    def test_help_EOF(self):
+        """  Test for help of EOF command """
+        msg = "EOF command to exit the program\n"
+        with patch('sys.stdout', new=io.StringIO()) as f:
+            HBNBCommand().onecmd("help EOF")
+            st = f.getvalue()
+            self.assertEqual(msg, st)
 
-    def test_pep8(self):
-        """ test base and test_base for pep8 conformance """
-        style = pep8.StyleGuide(quiet=True)
-        file1 = 'console.py'
-        file2 = 'tests/test_console.py'
-        result = style.check_files([file1, file2])
-        self.assertEqual(result.total_errors, 0,
-                         "Found code style errors (and warning).")
-
-    def test_executable_file(self):
-        """ Check if file have permissions to execute"""
-        # Check for read access
-        is_read_true = os.access('console.py', os.R_OK)
-        self.assertTrue(is_read_true)
-        # Check for write access
-        is_write_true = os.access('console.py', os.W_OK)
-        self.assertTrue(is_write_true)
-        # Check for execution access
-        is_exec_true = os.access('console.py', os.X_OK)
-        self.assertTrue(is_exec_true)
-
-    def test_check_help(self):
-        """ Verifies that each command has a help output """
-        with patch('sys.stdout', new=StringIO()) as help_val:
+    def test_help_create(self):
+        """  Test for help of create command """
+        msg = "Create an instance if the Model exists\n"
+        with patch('sys.stdout', new=io.StringIO()) as f:
             HBNBCommand().onecmd("help create")
-            self.assertTrue(len(help_val.getvalue()) > 0)
-        with patch('sys.stdout', new=StringIO()) as help_val:
-            HBNBCommand().onecmd("help all")
-            self.assertTrue(len(help_val.getvalue()) > 0)
-        with patch('sys.stdout', new=StringIO()) as help_val:
+            st = f.getvalue()
+            self.assertEqual(msg, st)
+
+    def test_help_show(self):
+        """  Test for help of show command """
+        msg = "Print dict of a instance in base of it's ID\n"
+        with patch('sys.stdout', new=io.StringIO()) as f:
             HBNBCommand().onecmd("help show")
-            self.assertTrue(len(help_val.getvalue()) > 0)
-        with patch('sys.stdout', new=StringIO()) as help_val:
+            st = f.getvalue()
+            self.assertEqual(msg, st)
+
+    def test_help_destroy(self):
+        """  Test for help of destroy command """
+        msg = "Deletes an instance based on it's ID and save the changes\n \
+        Usage: destroy <class name> <id>\n"
+
+        with patch('sys.stdout', new=io.StringIO()) as f:
             HBNBCommand().onecmd("help destroy")
-            self.assertTrue(len(help_val.getvalue()) > 0)
-        with patch('sys.stdout', new=StringIO()) as help_val:
+            st = f.getvalue()
+            self.assertEqual(msg, st)
+
+    def test_help_all(self):
+        """  Test for help of all command """
+        msg = "Print all the instances saved in file.json\n"
+        with patch('sys.stdout', new=io.StringIO()) as f:
+            HBNBCommand().onecmd("help all")
+            st = f.getvalue()
+            self.assertEqual(msg, st)
+
+    def test_help_update(self):
+        """  Test for help of update command """
+        msg = "Usage: update <class name> <id> <attribute name> " \
+              "<attribute value>\n"
+        with patch('sys.stdout', new=io.StringIO()) as f:
             HBNBCommand().onecmd("help update")
-            self.assertTrue(len(help_val.getvalue()) > 0)
+            st = f.getvalue()
+            self.assertEqual(msg, st)
 
-    def test_create_good(self):
-        """ Test the create function """
-        with patch('sys.stdout', new=StringIO()) as help_val:
-            HBNBCommand().onecmd("create BaseModel")
-            self.assertTrue(len(help_val.getvalue()) > 0)
+    def test_help_count(self):
+        """  Test for help of count command """
+        msg = "Usage: count <class name> or <class name>.count()\n"
+        with patch('sys.stdout', new=io.StringIO()) as f:
+            HBNBCommand().onecmd("help count")
+            st = f.getvalue()
+            self.assertEqual(msg, st)
 
-    def test_create_empty(self):
-        """ Test the create function """
-        with patch('sys.stdout', new=StringIO()) as help_val:
+
+class Test_create(unittest.TestCase):
+
+    """ Tests the create commands """
+    def setUp(self):
+        """ Set up for all methods """
+        try:
+            remove("file.json")
+        except:
+            pass
+        FileStorage._FileStorage__objects = {}
+
+    def tearDown(self):
+        """ Tear down for all methods """
+        try:
+            remove("file.json")
+        except:
+            pass
+
+    def test_create_no_class(self):
+        """  Test for create with class missing """
+        msg = "** class name missing **\n"
+        with patch('sys.stdout', new=io.StringIO()) as f:
             HBNBCommand().onecmd("create")
-            self.assertEqual(help_val.getvalue(), "** class name missing **\n")
+            st = f.getvalue()
+            self.assertEqual(msg, st)
 
-    def test_create_unknown(self):
-        """ Test the create function """
-        with patch('sys.stdout', new=StringIO()) as val:
-            HBNBCommand().onecmd("create Holberton")
-            self.assertEqual(val.getvalue(), "** class doesn't exist **\n")
+    def test_create_invalid_class(self):
+        """  Test for create with invalid class """
+        msg = "** class doesn't exist **\n"
+        with patch('sys.stdout', new=io.StringIO()) as f:
+            HBNBCommand().onecmd("create MyModel")
+            st = f.getvalue()
+            self.assertEqual(msg, st)
 
-    def test_show(self):
-        """ test show with normal parameters """
-        with patch('sys.stdout', new=StringIO()) as val:
-            HBNBCommand().onecmd('create BaseModel')
-            basemodel_id = val.getvalue()
-            self.assertTrue(len(basemodel_id) > 0)
-        with patch('sys.stdout', new=StringIO()) as val:
-            HBNBCommand().onecmd('show BaseModel ' + basemodel_id)
-            self.assertTrue(val.getvalue() != "** no instance found **\n")
+    def test_create_valid_class(self):
+        """  Test for create with existing id  """
+        classes = ["BaseModel", "User", "State", "City",
+                   "Amenity", "Place", "Review"]
+        for i in classes:
+            with patch('sys.stdout', new=io.StringIO()) as f:
+                HBNBCommand().onecmd("create " + i)
+                id_st = f.getvalue()
+                alldic = storage.all()
+                self.assertTrue((i + '.' + id_st[:-1]) in alldic.keys())
+        self.assertEqual(len(alldic), len(classes))
 
-    def test_show_notfound(self):
-        """ Test with class that does not exists """
-        with patch('sys.stdout', new=StringIO()) as val:
-            HBNBCommand().onecmd('show helloo ')
-            self.assertTrue(val.getvalue() == "** class doesn't exist **\n")
 
-    def test_show_empty(self):
-        """ Test with class missing """
-        with patch('sys.stdout', new=StringIO()) as val:
-            HBNBCommand().onecmd('show')
-            self.assertTrue(val.getvalue() == "** class name missing **\n")
+class Test_destroy(unittest.TestCase):
 
-    def test_show_id(self):
-        """ Test with id missing """
-        with patch('sys.stdout', new=StringIO()) as val:
-            HBNBCommand().onecmd('show BaseModel')
-            self.assertTrue(val.getvalue() == "** instance id missing **\n")
+    """ Tests the destroy commands """
+    def setUp(self):
+        """ Set up for all methods """
+        try:
+            remove("file.json")
+        except:
+            pass
+        FileStorage._FileStorage__objects = {}
 
-    def test_destroy_empty(self):
-        """ Checks if class is missing """
-        with patch('sys.stdout', new=StringIO()) as val:
-            HBNBCommand().onecmd('destroy')
-            self.assertTrue(val.getvalue() == "** class name missing **\n")
+    def tearDown(self):
+        """ Tear down for all methods """
+        try:
+            remove("file.json")
+        except:
+            pass
 
-    def test_destroy_wrong(self):
-        """ Checks if class name does not exists """
-        with patch('sys.stdout', new=StringIO()) as val:
-            HBNBCommand().onecmd('destroy fakeclass')
-            self.assertTrue(val.getvalue() == "** class doesn't exist **\n")
+    def test_destroy_no_class(self):
+        """  Test for destroy with class missing """
+        msg = "** class name missing **\n"
+        with patch('sys.stdout', new=io.StringIO()) as f:
+            HBNBCommand().onecmd("destroy")
+            st = f.getvalue()
+            self.assertEqual(msg, st)
 
-    def test_destroy_id(self):
-        """ Check if the id is missing """
-        with patch('sys.stdout', new=StringIO()) as val:
-            HBNBCommand().onecmd('destroy BaseModel')
-            self.assertTrue(val.getvalue() == "** instance id missing **\n")
+    def test_new_destroy_no_class(self):
+        """  Test for destroy with class missing by second method """
+        msg = "** class doesn't exist **\n"
+        with patch('sys.stdout', new=io.StringIO()) as f:
+            pre_cmd = HBNBCommand().precmd("MyModel.destroy()")
+            HBNBCommand().onecmd(pre_cmd)
+            st = f.getvalue()
+            if st[0] == "\n":
+                msg = "\n" + msg
+            self.assertEqual(msg, st)
 
-    def test_destroy_notfound(self):
-        """ Checks is the id belongs to an instance """
-        with patch('sys.stdout', new=StringIO()) as val:
-            HBNBCommand().onecmd('create BaseModel')
-        with patch('sys.stdout', new=StringIO()) as val:
-            HBNBCommand().onecmd('destroy BaseModel 121212')
-            self.assertTrue(val.getvalue() == "** no instance found **\n")
+    def test_destroy_invalid_class(self):
+        """  Test for destroy with invalid class """
+        msg = "** class doesn't exist **\n"
 
-    def destroy_working(self):
-        """ Checks is destroy methods deletes succesfully an instance """
-        with patch('sys.stdout', new=StringIO()) as val:
-            HBNBCommand().onecmd('create BaseModel')
-            basemodel_id = val.getvalue()
-            self.assertTrue(len(basemodel_id) > 0)
-        with patch('sys.stdout', new=StringIO()) as val:
-            HBNBCommand().onecmd('destroy BaseModel ' + basemodel_id)
-            self.assertTrue(val.getvalue() != "** no instance found **\n")
+        with patch('sys.stdout', new=io.StringIO()) as f:
+            HBNBCommand().onecmd("destroy MyModel")
+            st = f.getvalue()
+            self.assertEqual(msg, st)
 
-    def test_all_fakeclass(self):
-        """ Checks if class name exists """
-        with patch('sys.stdout', new=StringIO()) as val:
-            HBNBCommand().onecmd('create BaseModel')
-        with patch('sys.stdout', new=StringIO()) as val:
-            HBNBCommand().onecmd('all FakeClass')
-            self.assertTrue(val.getvalue() == "** class doesn't exist **\n")
+    def test_destroy_no_id(self):
+        """  Test for destroy with id missing """
+        msg = "** instance id missing **\n"
+        classes = ["BaseModel", "User", "State", "City",
+                   "Amenity", "Place", "Review"]
+        for i in classes:
+            with patch('sys.stdout', new=io.StringIO()) as f:
+                HBNBCommand().onecmd("destroy " + i)
+                st = f.getvalue()
+                self.assertEqual(msg, st)
 
-    def test_all_working(self):
-        """ Checks if the method all works correclty """
-        with patch('sys.stdout', new=StringIO()) as val:
-            HBNBCommand().onecmd('create BaseModel')
-        with patch('sys.stdout', new=StringIO()) as val:
-            HBNBCommand().onecmd('all')
-            self.assertTrue(len(val.getvalue()) > 0)
+    def test_new_destroy_no_id(self):
+        """  Test for destroy with id missing """
+        msg = "** instance id missing **\n"
+        classes = ["BaseModel", "User", "State", "City",
+                   "Amenity", "Place", "Review"]
+        for i in classes:
+            with patch('sys.stdout', new=io.StringIO()) as f:
+                pre_cmd = HBNBCommand().precmd(i + ".destroy()")
+                HBNBCommand().onecmd(pre_cmd)
+                st = f.getvalue()
+                if st[0] == "\n":
+                    msg = "\n" + msg
+                self.assertEqual(msg, st)
 
-    def test_all_trueclass(self):
-        """ Checks that the all method works correctly with a class input """
-        with patch('sys.stdout', new=StringIO()) as val:
-            HBNBCommand().onecmd('create BaseModel')
-        with patch('sys.stdout', new=StringIO()) as val:
-            HBNBCommand().onecmd('all BaseModel')
-            self.assertTrue(len(val.getvalue()) > 0)
+    def test_destroy_no_existent_id(self):
+        """  Test for destroy with non-existent id """
+        msg = "** no instance found **\n"
+        classes = ["BaseModel", "User", "State", "City",
+                   "Amenity", "Place", "Review"]
+        for i in classes:
+            with patch('sys.stdout', new=io.StringIO()) as f:
+                HBNBCommand().onecmd("destroy " + i + " 123")
+                st = f.getvalue()
+                self.assertEqual(msg, st)
 
-    def test_update_missingclass(self):
-        """ Checks if the class is missing """
-        with patch('sys.stdout', new=StringIO()) as val:
-            HBNBCommand().onecmd('update')
-            self.assertTrue(val.getvalue() == "** class name missing **\n")
+    def test_new_destroy_no_existent_id(self):
+        """  Test for destroy with non-existent id """
+        msg = "** no instance found **\n"
+        classes = ["BaseModel", "User", "State", "City",
+                   "Amenity", "Place", "Review"]
+        for i in classes:
+            with patch('sys.stdout', new=io.StringIO()) as f:
+                pre_cmd = HBNBCommand().precmd(i + ".destroy(123)")
+                HBNBCommand().onecmd(pre_cmd)
+                st = f.getvalue()
+                if st[0] == "\n":
+                    msg = "\n" + msg
+                self.assertEqual(msg, st)
 
-    def test_update_wrongclass(self):
-        """ Checks if the class exists """
-        with patch('sys.stdout', new=StringIO()) as val:
-            HBNBCommand().onecmd('create BaseModel')
-        with patch('sys.stdout', new=StringIO()) as val:
-            HBNBCommand().onecmd('update FakeClass')
-            self.assertTrue(val.getvalue() == "** class doesn't exist **\n")
+    def test_destroy_valid_class(self):
+        """  Test for destroy with existing id  """
+        classes = ["BaseModel", "User", "State", "City",
+                   "Amenity", "Place", "Review"]
+        lencl = len(classes)
+        id_cl = []
+        for i in classes:
+            with patch('sys.stdout', new=io.StringIO()) as f:
+                HBNBCommand().onecmd("create " + i)
+                id_st = f.getvalue()
+                id_cl.append(id_st)
+                alldic = storage.all()
+                self.assertTrue((i + '.' + id_st[:-1]) in alldic.keys())
+        self.assertEqual(len(alldic), lencl)
+        for i, j in zip(classes, id_cl):
+            with patch('sys.stdout', new=io.StringIO()) as f:
+                HBNBCommand().onecmd("destroy " + i + " " + j)
+                alldic = storage.all()
+                self.assertFalse((i + '.' + id_st[:-1]) in alldic.keys())
+                lencl -= 1
+                self.assertEqual(len(alldic), lencl)
 
-    def test_update_noinstance(self):
-        """ Checks is the instance id is missing """
-        with patch('sys.stdout', new=StringIO()) as val:
-            HBNBCommand().onecmd('create BaseModel')
-        with patch('sys.stdout', new=StringIO()) as val:
-            HBNBCommand().onecmd('update BaseModel')
-            self.assertTrue(val.getvalue() == "** instance id missing **\n")
 
-    def test_update_notfound(self):
-        """ Checks is instance id exists """
-        with patch('sys.stdout', new=StringIO()) as val:
-            HBNBCommand().onecmd('create BaseModel')
-        with patch('sys.stdout', new=StringIO()) as val:
-            HBNBCommand().onecmd('update BaseModel 121212')
-            self.assertTrue(val.getvalue() == "** no instance found **\n")
+class Test_show(unittest.TestCase):
 
-    def test_update_missing_name(self):
-        """ Checks if the attribute name is missing """
-        with patch('sys.stdout', new=StringIO()) as my_id:
-            HBNBCommand().onecmd('create BaseModel')
-            basemodel_id = my_id.getvalue()
-            self.assertTrue(len(basemodel_id) > 0)
-        with patch('sys.stdout', new=StringIO()) as val:
-            HBNBCommand().onecmd('update BaseModel ' + basemodel_id)
-            self.assertTrue(val.getvalue() == "** attribute name missing **\n")
+    """ Tests the show commands """
+    def setUp(self):
+        """ Set up for all methods """
+        try:
+            remove("file.json")
+        except:
+            pass
+        FileStorage._FileStorage__objects = {}
 
-    def test_update_missing_value(self):
-        """ Checks if the attribute value is missing """
-        with patch('sys.stdout', new=StringIO()) as my_id:
-            HBNBCommand().onecmd('create BaseModel')
-            base_id = my_id.getvalue()
-            self.assertTrue(len(base_id) > 0)
-        with patch('sys.stdout', new=StringIO()) as val:
-            HBNBCommand().onecmd('update BaseModel ' + base_id + "first_name")
-            self.assertTrue(val.getvalue() == "** value missing **\n")
+    def tearDown(self):
+        """ Tear down for all methods """
+        try:
+            remove("file.json")
+        except:
+            pass
 
-    def test_update_ok(self):
-        """ update test working """
-        with patch('sys.stdout', new=StringIO()) as val:
-            HBNBCommand().onecmd("create BaseModel")
-            user_id = val.getvalue()
-        with patch('sys.stdout', new=StringIO()) as val:
-            HBNBCommand().onecmd("update BaseModel " + user_id + " name betty")
-            HBNBCommand().onecmd("show BaseModel " + user_id)
-            self.assertTrue("betty" in val.getvalue())
+    def test_show_no_arg(self):
+        """  Test for show with no command """
+        msg = "** class name missing **\n"
+        with patch('sys.stdout', new=io.StringIO()) as f:
+            HBNBCommand().onecmd("show")
+            st = f.getvalue()
+            self.assertEqual(msg, st)
 
-    def test_update_okextra(self):
-        """ update test working """
-        with patch('sys.stdout', new=StringIO()) as val:
-            HBNBCommand().onecmd("create BaseModel")
-            uid = val.getvalue()
-        with patch('sys.stdout', new=StringIO()) as val:
-            HBNBCommand().onecmd("update BaseModel " + uid + " name betty ho")
-            HBNBCommand().onecmd("show BaseModel " + uid)
-            self.assertTrue("betty" in val.getvalue())
+    def test_show_no_exist_class(self):
+        """  Test for show non-existent class """
+        msg = "** class doesn't exist **\n"
+        with patch('sys.stdout', new=io.StringIO()) as f:
+            HBNBCommand().onecmd("show MyModel")
+            st = f.getvalue()
+            self.assertEqual(msg, st)
 
-    def test_user_console(self):
-        """ Test the class user with console """
-        with patch('sys.stdout', new=StringIO()) as val:
-            HBNBCommand().onecmd("create User")
-            user_id = val.getvalue()
-            self.assertTrue(user_id != "** class doesn't exist **\n")
-        with patch('sys.stdout', new=StringIO()) as val:
-            HBNBCommand().onecmd("show User " + user_id)
-            self.assertTrue(val.getvalue() != "** no instance found **\n")
-        with patch('sys.stdout', new=StringIO()) as val:
-            HBNBCommand().onecmd("all User")
-            self.assertTrue(val.getvalue() != "** class doesn't exist **\n")
-        with patch('sys.stdout', new=StringIO()) as val:
-            HBNBCommand().onecmd("update User " + user_id + " name betty")
-            HBNBCommand().onecmd("show User " + user_id)
-            self.assertTrue("betty" in val.getvalue())
-            HBNBCommand().onecmd("destroy User " + user_id)
-        with patch('sys.stdout', new=StringIO()) as val:
-            HBNBCommand().onecmd("show User "+user_id)
-            self.assertEqual(val.getvalue(), "** no instance found **\n")
+    def test_new_show_no_exist_class(self):
+        """  Test for show non-existent class """
+        msg = "** class doesn't exist **\n"
+        with patch('sys.stdout', new=io.StringIO()) as f:
+            pre_cmd = HBNBCommand().precmd("MyModel.show()")
+            HBNBCommand().onecmd(pre_cmd)
+            st = f.getvalue()
+            if st[0] == "\n":
+                msg = "\n" + msg
+            self.assertEqual(msg, st)
 
-    def test_place_console(self):
-        """ Test the class user with console """
-        with patch('sys.stdout', new=StringIO()) as val:
-            HBNBCommand().onecmd("create Place")
-            user_id = val.getvalue()
-            self.assertTrue(user_id != "** class doesn't exist **\n")
-        with patch('sys.stdout', new=StringIO()) as val:
-            HBNBCommand().onecmd("show Place " + user_id)
-            self.assertTrue(val.getvalue() != "** no instance found **\n")
-        with patch('sys.stdout', new=StringIO()) as val:
-            HBNBCommand().onecmd("all Place")
-            self.assertTrue(val.getvalue() != "** class doesn't exist **\n")
-        with patch('sys.stdout', new=StringIO()) as val:
-            HBNBCommand().onecmd("update Place " + user_id + " name betty")
-            HBNBCommand().onecmd("show Place " + user_id)
-            self.assertTrue("betty" in val.getvalue())
-            HBNBCommand().onecmd("destroy Place " + user_id)
-        with patch('sys.stdout', new=StringIO()) as val:
-            HBNBCommand().onecmd("show Place "+user_id)
-            self.assertEqual(val.getvalue(), "** no instance found **\n")
+    def test_show_no_id(self):
+        """  Test for show with id missing """
+        msg = "** instance id missing **\n"
+        classes = ["BaseModel", "User", "State", "City",
+                   "Amenity", "Place", "Review"]
+        for i in classes:
+            with patch('sys.stdout', new=io.StringIO()) as f:
+                HBNBCommand().onecmd("show " + i)
+                st = f.getvalue()
+                self.assertEqual(msg, st)
 
-    def test_state_console(self):
-        """ Test the class user with console """
-        with patch('sys.stdout', new=StringIO()) as val:
-            HBNBCommand().onecmd("create State")
-            user_id = val.getvalue()
-            self.assertTrue(user_id != "** class doesn't exist **\n")
-        with patch('sys.stdout', new=StringIO()) as val:
-            HBNBCommand().onecmd("show State " + user_id)
-            self.assertTrue(val.getvalue() != "** no instance found **\n")
-        with patch('sys.stdout', new=StringIO()) as val:
-            HBNBCommand().onecmd("all State")
-            self.assertTrue(val.getvalue() != "** class doesn't exist **\n")
-        with patch('sys.stdout', new=StringIO()) as val:
-            HBNBCommand().onecmd("update State " + user_id + " name betty")
-            HBNBCommand().onecmd("show State " + user_id)
-            self.assertTrue("betty" in val.getvalue())
-            HBNBCommand().onecmd("destroy State " + user_id)
-        with patch('sys.stdout', new=StringIO()) as val:
-            HBNBCommand().onecmd("show State "+user_id)
-            self.assertEqual(val.getvalue(), "** no instance found **\n")
+    def test_new_show_no_id(self):
+        """  Test for show with id missing """
+        msg = "** instance id missing **\n"
+        classes = ["BaseModel", "User", "State", "City",
+                   "Amenity", "Place", "Review"]
+        for i in classes:
+            with patch('sys.stdout', new=io.StringIO()) as f:
+                pre_cmd = HBNBCommand().precmd(i + ".show()")
+                HBNBCommand().onecmd(pre_cmd)
+                st = f.getvalue()
+                if st[0] == "\n":
+                    msg = "\n" + msg
+                self.assertEqual(msg, st)
 
-    def test_city_console(self):
-        """ Test the class user with console """
-        with patch('sys.stdout', new=StringIO()) as val:
-            HBNBCommand().onecmd("create City")
-            user_id = val.getvalue()
-            self.assertTrue(user_id != "** class doesn't exist **\n")
-        with patch('sys.stdout', new=StringIO()) as val:
-            HBNBCommand().onecmd("show City " + user_id)
-            self.assertTrue(val.getvalue() != "** no instance found **\n")
-        with patch('sys.stdout', new=StringIO()) as val:
-            HBNBCommand().onecmd("all City")
-            self.assertTrue(val.getvalue() != "** class doesn't exist **\n")
-        with patch('sys.stdout', new=StringIO()) as val:
-            HBNBCommand().onecmd("update City " + user_id + " name betty")
-            HBNBCommand().onecmd("show City " + user_id)
-            self.assertTrue("betty" in val.getvalue())
-            HBNBCommand().onecmd("destroy City " + user_id)
-        with patch('sys.stdout', new=StringIO()) as val:
-            HBNBCommand().onecmd("show City "+user_id)
-            self.assertEqual(val.getvalue(), "** no instance found **\n")
+    def test_show_no_existent_id(self):
+        """  Test for show with non-existent id """
+        msg = "** no instance found **\n"
+        classes = ["BaseModel", "User", "State", "City",
+                   "Amenity", "Place", "Review"]
+        for i in classes:
+            with patch('sys.stdout', new=io.StringIO()) as f:
+                HBNBCommand().onecmd("show " + i + " 123")
+                st = f.getvalue()
+                self.assertEqual(msg, st)
 
-    def test_amenity_console(self):
-        """ Test the class user with console """
-        with patch('sys.stdout', new=StringIO()) as val:
-            HBNBCommand().onecmd("create Amenity")
-            user_id = val.getvalue()
-            self.assertTrue(user_id != "** class doesn't exist **\n")
-        with patch('sys.stdout', new=StringIO()) as val:
-            HBNBCommand().onecmd("show Amenity " + user_id)
-            self.assertTrue(val.getvalue() != "** no instance found **\n")
-        with patch('sys.stdout', new=StringIO()) as val:
-            HBNBCommand().onecmd("all Amenity")
-            self.assertTrue(val.getvalue() != "** class doesn't exist **\n")
-        with patch('sys.stdout', new=StringIO()) as val:
-            HBNBCommand().onecmd("update Amenity " + user_id + " name betty")
-            HBNBCommand().onecmd("show Amenity " + user_id)
-            self.assertTrue("betty" in val.getvalue())
-            HBNBCommand().onecmd("destroy Amenity " + user_id)
-        with patch('sys.stdout', new=StringIO()) as val:
-            HBNBCommand().onecmd("show Amenity "+user_id)
-            self.assertEqual(val.getvalue(), "** no instance found **\n")
+    def test_new_show_no_existent_id(self):
+        """  Test for show with non-existent id """
+        msg = "** no instance found **\n"
+        classes = ["BaseModel", "User", "State", "City",
+                   "Amenity", "Place", "Review"]
+        for i in classes:
+            with patch('sys.stdout', new=io.StringIO()) as f:
+                pre_cmd = HBNBCommand().precmd(i + ".show(123)")
+                HBNBCommand().onecmd(pre_cmd)
+                st = f.getvalue()
+                if st[0] == "\n":
+                    msg = "\n" + msg
+                self.assertEqual(msg, st)
 
-    def test_review_console(self):
-        """ Test the class user with console """
-        with patch('sys.stdout', new=StringIO()) as val:
-            HBNBCommand().onecmd("create Review")
-            user_id = val.getvalue()
-            self.assertTrue(user_id != "** class doesn't exist **\n")
-        with patch('sys.stdout', new=StringIO()) as val:
-            HBNBCommand().onecmd("show Review " + user_id)
-            self.assertTrue(val.getvalue() != "** no instance found **\n")
-        with patch('sys.stdout', new=StringIO()) as val:
-            HBNBCommand().onecmd("all Review")
-            self.assertTrue(val.getvalue() != "** class doesn't exist **\n")
-        with patch('sys.stdout', new=StringIO()) as val:
-            HBNBCommand().onecmd("update Review " + user_id + " name betty")
-            HBNBCommand().onecmd("show Review " + user_id)
-            self.assertTrue("betty" in val.getvalue())
-            HBNBCommand().onecmd("destroy Review " + user_id)
-        with patch('sys.stdout', new=StringIO()) as val:
-            HBNBCommand().onecmd("show Review "+user_id)
-            self.assertEqual(val.getvalue(), "** no instance found **\n")
+    def test_show_existing_id(self):
+        """  Test for show with existing id  """
+        classes = ["BaseModel", "User", "State", "City",
+                   "Amenity", "Place", "Review"]
+        for i in classes:
+            with patch('sys.stdout', new=io.StringIO()) as f:
+                HBNBCommand().onecmd("create " + i)
+                id_st = f.getvalue()
+            with patch('sys.stdout', new=io.StringIO()) as f:
+                HBNBCommand().onecmd("show " + i + " " + id_st)
+                st = f.getvalue()
+                alldic = storage.all()
+                objst = str(alldic[i + '.' + id_st[:-1]])
+                self.assertEqual(st[:-1], objst)
 
-    def test_alternative_all(self):
-        """test alternative all with [class].all"""
-        with patch('sys.stdout', new=StringIO()) as val:
-            HBNBCommand().onecmd("create User")
-        with patch('sys.stdout', new=StringIO()) as val:
-            HBNBCommand().onecmd("User.all()")
-            self.assertTrue(len(val.getvalue()) > 0)
+    def test_show_show_existing_id(self):
+        """  Test for show with existing id  """
+        classes = ["BaseModel", "User", "State", "City",
+                   "Amenity", "Place", "Review"]
+        for i in classes:
+            with patch('sys.stdout', new=io.StringIO()) as f:
+                HBNBCommand().onecmd("create " + i)
+                id_st = f.getvalue()
+            with patch('sys.stdout', new=io.StringIO()) as f:
+                pre_cmd = HBNBCommand().precmd(i + ".show(\"" + id_st + "\")")
+                HBNBCommand().onecmd(pre_cmd)
+                st = f.getvalue()
+                alldic = storage.all()
+                objst = str(alldic[i + '.' + id_st[:-1]])
+                self.assertEqual(st[:-1], objst)
 
-    def test_alternative_show(self):
-        """test alternative show with [class].show"""
-        with patch('sys.stdout', new=StringIO()) as val:
-            HBNBCommand().onecmd("create User")
-            user_id = val.getvalue()
-        with patch('sys.stdout', new=StringIO()) as val:
-            HBNBCommand().onecmd("User.show(\"" + user_id + "\")")
-            self.assertTrue(len(val.getvalue()) > 0)
 
-    def test_count(self):
-        """test alternative show with [class].show"""
-        with patch('sys.stdout', new=StringIO()) as val:
-            HBNBCommand().onecmd("User.count()")
-            self.assertTrue(int(val.getvalue()) == 0)
-        with patch('sys.stdout', new=StringIO()) as val:
-            HBNBCommand().onecmd("create User")
-        with patch('sys.stdout', new=StringIO()) as val:
-            HBNBCommand().onecmd("User.count()")
-            self.assertTrue(int(val.getvalue()) == 1)
+class Test_all(unittest.TestCase):
 
-    def test_alternative_destroy(self):
-        """test alternative destroy with [class].destroy(id)"""
-        with patch('sys.stdout', new=StringIO()) as val:
-            HBNBCommand().onecmd("create User")
-            user_id = val.getvalue()
-        with patch('sys.stdout', new=StringIO()) as val:
-            HBNBCommand().onecmd("User.destroy(\"" + user_id + "\")")
-        with patch('sys.stdout', new=StringIO()) as val:
-            HBNBCommand().onecmd("User.count()")
-            self.assertTrue(int(val.getvalue()) == 0)
+    """ Tests the all command """
 
-    def test_alternative_update1(self):
-        """test alternative update with [class].show"""
-        with patch('sys.stdout', new=StringIO()) as val:
-            HBNBCommand().onecmd("create User")
-            user_id = val.getvalue()
-        with patch('sys.stdout', new=StringIO()) as val:
-            line = "\", \"name\", \"betty\")"
-            HBNBCommand().onecmd("User.update(\"" + user_id + line)
-        with patch('sys.stdout', new=StringIO()) as val:
-            HBNBCommand().onecmd("User.show(\"" + user_id + "\")")
-            self.assertTrue("betty" in val.getvalue())
+    def setUp(self):
+        """ Set up for all methods """
+        try:
+            remove("file.json")
+        except:
+            pass
+        FileStorage._FileStorage__objects = {}
 
-    def test_alternative_update2(self):
-        """test alternative update with [class].show"""
-        with patch('sys.stdout', new=StringIO()) as val:
-            HBNBCommand().onecmd("create User")
-            user_id = val.getvalue()
-        with patch('sys.stdout', new=StringIO()) as val:
-            line = "\", {'first_name': 'John', 'age': 89})"
-            HBNBCommand().onecmd("User.update(\"" + user_id + line)
-        with patch('sys.stdout', new=StringIO()) as val:
-            HBNBCommand().onecmd("User.show(\"" + user_id + "\")")
-            self.assertTrue("John" in val.getvalue())
+    def tearDown(self):
+        """ Tear down for all methods """
+        try:
+            remove("file.json")
+        except:
+            pass
 
-if __name__ == '__main__':
-    unittest.main()
+    def test_update_no_existent_class(self):
+        """  Test for all with no existent class """
+        msg = "** class doesn't exist **\n"
+        with patch('sys.stdout', new=io.StringIO()) as f:
+            HBNBCommand().onecmd("all MyModel")
+            st = f.getvalue()
+            self.assertEqual(msg, st)
+
+    def test_new_update_no_existent_class(self):
+        """  Test for all with no existent class """
+        msg = "** class doesn't exist **\n"
+        with patch('sys.stdout', new=io.StringIO()) as f:
+            pre_cmd = HBNBCommand().precmd("MyModel.all()")
+            HBNBCommand().onecmd(pre_cmd)
+            st = f.getvalue()
+            if st[0] == "\n":
+                msg = "\n" + msg
+            self.assertEqual(msg, st)
+
+    def test_empty(self):
+        """ Tests for empty storage """
+        classes = ["BaseModel", "User", "State", "City",
+                   "Amenity", "Place", "Review"]
+        msg = "[]\n"
+        with patch('sys.stdout', new=io.StringIO()) as f:
+                HBNBCommand().onecmd("all")
+                st = f.getvalue()
+                self.assertEqual(msg, st)
+        for i in classes:
+            with patch('sys.stdout', new=io.StringIO()) as f:
+                HBNBCommand().onecmd("all " + i)
+                st = f.getvalue()
+                self.assertEqual(msg, st)
+
+    def test_new_empty(self):
+        """ Tests for empty storage """
+        classes = ["BaseModel", "User", "State", "City",
+                   "Amenity", "Place", "Review"]
+        msg = "[]\n"
+        with patch('sys.stdout', new=io.StringIO()) as f:
+                HBNBCommand().onecmd("all()")
+                st = f.getvalue()
+                self.assertEqual(msg, st)
+        for i in classes:
+            with patch('sys.stdout', new=io.StringIO()) as f:
+                pre_cmd = HBNBCommand().precmd(i + ".all()")
+                HBNBCommand().onecmd(pre_cmd)
+                st = f.getvalue()
+                if st[0] == "\n":
+                    msg = "\n" + msg
+                self.assertEqual(msg, st)
+
+    def test_all_classes(self):
+        """ Tests All command for classes_double """
+        classes = ["BaseModel", "User", "State", "City",
+                   "Amenity", "Place", "Review"]
+        classes += classes
+        for i in classes:
+            with patch('sys.stdout', new=io.StringIO()) as f:
+                HBNBCommand().onecmd("create " + i)
+                st = f.getvalue()
+            alldic = storage.all()
+            all_cl = []
+            all_full = []
+            for j in alldic.keys():
+                    all_full.append(str(alldic[j]))
+                    if i in j:
+                        all_cl.append(str(alldic[j]))
+            with patch('sys.stdout', new=io.StringIO()) as f:
+                HBNBCommand().onecmd("all " + i)
+                st = f.getvalue()
+                self.assertEqual(str(all_cl) + "\n", st)
+            with patch('sys.stdout', new=io.StringIO()) as f:
+                HBNBCommand().onecmd("all")
+                st = f.getvalue()
+                self.assertEqual(str(all_full) + "\n", st)
+
+
+class Test_update(unittest.TestCase):
+
+    """ Tests the update commands """
+    def setUp(self):
+        """ Set up for all methods """
+        try:
+            remove("file.json")
+        except:
+            pass
+        FileStorage._FileStorage__objects = {}
+
+    def tearDown(self):
+        """ Tear down for all methods """
+        try:
+            remove("file.json")
+        except:
+            pass
+
+    def test_update_no_class(self):
+        """  Test for update with no class """
+        msg = "** class name missing **\n"
+        with patch('sys.stdout', new=io.StringIO()) as f:
+            HBNBCommand().onecmd("update")
+            st = f.getvalue()
+            self.assertEqual(msg, st)
+
+    def test_update_no_existent_class(self):
+        """  Test for update with no existent class """
+        msg = "** class doesn't exist **\n"
+        with patch('sys.stdout', new=io.StringIO()) as f:
+            HBNBCommand().onecmd("update MyModel")
+            st = f.getvalue()
+            self.assertEqual(msg, st)
+
+    def test_new_update_no_existent_class(self):
+        """  Test for update with no existent class """
+        msg = "** class doesn't exist **\n"
+        with patch('sys.stdout', new=io.StringIO()) as f:
+            pre_cmd = HBNBCommand().precmd("MyModel.update()")
+            HBNBCommand().onecmd(pre_cmd)
+            st = f.getvalue()
+            if st[0] == "\n":
+                msg = "\n" + msg
+            self.assertEqual(msg, st)
+
+    def test_update_no_id(self):
+        """  Test for update with id missing """
+        msg = "** instance id missing **\n"
+        classes = ["BaseModel", "User", "State", "City",
+                   "Amenity", "Place", "Review"]
+        for i in classes:
+            with patch('sys.stdout', new=io.StringIO()) as f:
+                HBNBCommand().onecmd("update " + i)
+                st = f.getvalue()
+                self.assertEqual(msg, st)
+
+    def test_new_update_no_id(self):
+        """  Test for update with id missing """
+        msg = "** instance id missing **\n"
+        classes = ["BaseModel", "User", "State", "City",
+                   "Amenity", "Place", "Review"]
+        for i in classes:
+            with patch('sys.stdout', new=io.StringIO()) as f:
+                pre_cmd = HBNBCommand().precmd(i + ".update()")
+                HBNBCommand().onecmd(pre_cmd)
+                st = f.getvalue()
+                if st[0] == "\n":
+                    msg = "\n" + msg
+                self.assertEqual(msg, st)
+
+    def test_update_no_existent_id(self):
+        """  Test for update with non-existent id """
+        msg = "** no instance found **\n"
+        classes = ["BaseModel", "User", "State", "City",
+                   "Amenity", "Place", "Review"]
+        for i in classes:
+            with patch('sys.stdout', new=io.StringIO()) as f:
+                HBNBCommand().onecmd("update " + i + " 123")
+                st = f.getvalue()
+                self.assertEqual(msg, st)
+
+    def test_update_existing_id_no_attr(self):
+        """  Test for update with existing id no attr """
+        msg = "** attribute name missing **\n"
+        classes = ["BaseModel", "User", "State", "City",
+                   "Amenity", "Place", "Review"]
+        for i in classes:
+            with patch('sys.stdout', new=io.StringIO()) as f:
+                HBNBCommand().onecmd("create " + i)
+                id_st = f.getvalue()
+            with patch('sys.stdout', new=io.StringIO()) as f:
+                HBNBCommand().onecmd("update " + i + " " + id_st)
+                st = f.getvalue()
+                self.assertEqual(msg, st)
+
+    def test_update_no_value(self):
+        """  Test for update with no value """
+        msg = "** value missing **\n"
+        classes = ["BaseModel", "User", "State", "City",
+                   "Amenity", "Place", "Review"]
+        for i in classes:
+            with patch('sys.stdout', new=io.StringIO()) as f:
+                HBNBCommand().onecmd("create " + i)
+                id_st = f.getvalue()
+            with patch('sys.stdout', new=io.StringIO()) as f:
+                HBNBCommand().onecmd("update " + i + " " + id_st + " name")
+                st = f.getvalue()
+                self.assertEqual(msg, st)
+
+    def test_update_extra_args(self):
+        """  Test for update with BaseModel """
+        classes = ["BaseModel", "User", "State", "City",
+                   "Amenity", "Place", "Review"]
+        attr = ["name", "code"]
+        value = ["Holberton", "123"]
+        typeval = [str, str]
+
+        for i in classes:
+            with patch('sys.stdout', new=io.StringIO()) as f:
+                HBNBCommand().onecmd("create " + i)
+                id_st = f.getvalue()
+                alldic = storage.all()
+                self.assertTrue((i + '.' + id_st[:-1]) in alldic.keys())
+                for j, k in zip(attr, value):
+                    with patch('sys.stdout', new=io.StringIO()) as f:
+                        HBNBCommand().onecmd("update " + i + " " + id_st +
+                                             " " + j + " " + "\"" + k + "\"" +
+                                             "Hey_name \"Betty\"")
+                alldic = storage.all()
+                ins = alldic[i + '.' + id_st[:-1]]
+                for j, k, m in zip(attr, value, typeval):
+                    gattr = getattr(ins, j, False)
+                    self.assertEqual(gattr, k)
+                    self.assertEqual(m, type(gattr))
+                self.assertFalse(getattr(ins, "Hey_name", False))
+
+    def test_update_BaseModel(self):
+        """  Test for update with BaseModel """
+        i = "BaseModel"
+        attr = ["name", "code"]
+        value = ["Holberton", "123"]
+        typeval = [str, str]
+        with patch('sys.stdout', new=io.StringIO()) as f:
+            HBNBCommand().onecmd("create " + i)
+            id_st = f.getvalue()
+            alldic = storage.all()
+            self.assertTrue((i + '.' + id_st[:-1]) in alldic.keys())
+        for j, k in zip(attr, value):
+                with patch('sys.stdout', new=io.StringIO()) as f:
+                    HBNBCommand().onecmd("update " + i + " " + id_st +
+                                         " " + j + " " + k)
+        alldic = storage.all()
+        ins = alldic[i + '.' + id_st[:-1]]
+        for j, k, m in zip(attr, value, typeval):
+            gattr = getattr(ins, j, False)
+            self.assertEqual(gattr, k)
+            self.assertEqual(m, type(gattr))
+
+    def test_update_User(self):
+        """  Test for update with User """
+        i = "User"
+        attr = ["name", "code", "email", "password", "first_name", "last_name"]
+        value = ["Holberton", "123", "ga@gmail.com", "pswd", "Larry", "Page"]
+        typeval = [str, str, str, str, str, str]
+        with patch('sys.stdout', new=io.StringIO()) as f:
+            HBNBCommand().onecmd("create " + i)
+            id_st = f.getvalue()
+            alldic = storage.all()
+            self.assertTrue((i + '.' + id_st[:-1]) in alldic.keys())
+        for j, k in zip(attr, value):
+                with patch('sys.stdout', new=io.StringIO()) as f:
+                    HBNBCommand().onecmd("update " + i + " " + id_st +
+                                         " " + j + " " + k)
+        alldic = storage.all()
+        ins = alldic[i + '.' + id_st[:-1]]
+        for j, k, m in zip(attr, value, typeval):
+            gattr = getattr(ins, j, False)
+            self.assertEqual(gattr, k)
+            self.assertEqual(m, type(gattr))
+
+    def test_update_State(self):
+        """  Test for update with State """
+        i = "State"
+        attr = ["name", "code"]
+        value = ["Holberton", "123"]
+        typeval = [str, str]
+        with patch('sys.stdout', new=io.StringIO()) as f:
+            HBNBCommand().onecmd("create " + i)
+            id_st = f.getvalue()
+            alldic = storage.all()
+            self.assertTrue((i + '.' + id_st[:-1]) in alldic.keys())
+        for j, k in zip(attr, value):
+                with patch('sys.stdout', new=io.StringIO()) as f:
+                    HBNBCommand().onecmd("update " + i + " " + id_st +
+                                         " " + j + " " + k)
+        alldic = storage.all()
+        ins = alldic[i + '.' + id_st[:-1]]
+        for j, k, m in zip(attr, value, typeval):
+            gattr = getattr(ins, j, False)
+            self.assertEqual(gattr, k)
+            self.assertEqual(m, type(gattr))
+
+    def test_update_City(self):
+        """  Test for update with City """
+        i = "City"
+        attr = ["state_id", "name", "code"]
+        value = ["568", "Holberton", "123"]
+        typeval = [str, str, str]
+        with patch('sys.stdout', new=io.StringIO()) as f:
+            HBNBCommand().onecmd("create " + i)
+            id_st = f.getvalue()
+            alldic = storage.all()
+            self.assertTrue((i + '.' + id_st[:-1]) in alldic.keys())
+        for j, k in zip(attr, value):
+                with patch('sys.stdout', new=io.StringIO()) as f:
+                    HBNBCommand().onecmd("update " + i + " " + id_st +
+                                         " " + j + " " + k)
+        alldic = storage.all()
+        ins = alldic[i + '.' + id_st[:-1]]
+        for j, k, m in zip(attr, value, typeval):
+            gattr = getattr(ins, j, False)
+            self.assertEqual(gattr, k)
+            self.assertEqual(m, type(gattr))
+
+    def test_update_Amenity(self):
+        """  Test for update with Amenity """
+        i = "Amenity"
+        attr = ["name", "code"]
+        value = ["Holberton", "123"]
+        typeval = [str, str]
+        with patch('sys.stdout', new=io.StringIO()) as f:
+            HBNBCommand().onecmd("create " + i)
+            id_st = f.getvalue()
+            alldic = storage.all()
+            self.assertTrue((i + '.' + id_st[:-1]) in alldic.keys())
+        for j, k in zip(attr, value):
+                with patch('sys.stdout', new=io.StringIO()) as f:
+                    HBNBCommand().onecmd("update " + i + " " + id_st +
+                                         " " + j + " " + k)
+        alldic = storage.all()
+        ins = alldic[i + '.' + id_st[:-1]]
+        for j, k, m in zip(attr, value, typeval):
+            gattr = getattr(ins, j, False)
+            self.assertEqual(gattr, k)
+            self.assertEqual(m, type(gattr))
+
+    def test_update_Place(self):
+        """  Test for update with Place """
+        i = "Place"
+        attr = ["city_id", "user_id", "name", "description", "number_rooms",
+                "number_bathrooms", "max_guest", "price_by_night", "latitude",
+                "longitude", "code"]
+        value = ["686", "123", "Larry", "Nice", 5, 2, 15, 136,
+                 8.7, 9.4, "988"]
+        typeval = [str, str, str, str, int, int, int, int, float, float, str]
+        with patch('sys.stdout', new=io.StringIO()) as f:
+            HBNBCommand().onecmd("create " + i)
+            id_st = f.getvalue()
+            alldic = storage.all()
+            self.assertTrue((i + '.' + id_st[:-1]) in alldic.keys())
+        for j, k in zip(attr, value):
+                with patch('sys.stdout', new=io.StringIO()) as f:
+                    HBNBCommand().onecmd("update " + i + " " + id_st +
+                                         " " + j + " " + str(k))
+        alldic = storage.all()
+        ins = alldic[i + '.' + id_st[:-1]]
+        for j, k, m in zip(attr, value, typeval):
+            gattr = getattr(ins, j, False)
+            self.assertEqual(gattr, k)
+            self.assertEqual(m, type(gattr))
+
+    def test_update_Review(self):
+        """  Test for update with Review """
+        i = "Review"
+        attr = ["place_id", "user_id", "text", "name", "code"]
+        value = ["985", "7621", "Random Text", "Holberton", "123"]
+        typeval = [str, str]
+        with patch('sys.stdout', new=io.StringIO()) as f:
+            HBNBCommand().onecmd("create " + i)
+            id_st = f.getvalue()
+            alldic = storage.all()
+            self.assertTrue((i + '.' + id_st[:-1]) in alldic.keys())
+        for j, k in zip(attr, value):
+                with patch('sys.stdout', new=io.StringIO()) as f:
+                    HBNBCommand().onecmd("update " + i + " " + id_st +
+                                         " " + j + " " + k)
+        alldic = storage.all()
+        ins = alldic[i + '.' + id_st[:-1]]
+        for j, k, m in zip(attr, value, typeval):
+            gattr = getattr(ins, j, False)
+            self.assertEqual(gattr, k)
+            self.assertEqual(m, type(gattr))
+
+
+class Test_count(unittest.TestCase):
+
+    """ Tests the update commands """
+    def setUp(self):
+        """ Set up for all methods """
+        try:
+            remove("file.json")
+        except:
+            pass
+        FileStorage._FileStorage__objects = {}
+
+    def tearDown(self):
+        """ Tear down for all methods """
+        try:
+            remove("file.json")
+        except:
+            pass
