@@ -1,4 +1,4 @@
-AirBnB Clone
+##AirBnB Clone
 Overview
 The term "AirBnB_clone" can have multiple interpretations depending on the context. It generally refers to a concept or an open-source project aimed at replicating the functionality of Airbnb, an online marketplace for booking accommodations. This README provides an explanation of both interpretations.
 
